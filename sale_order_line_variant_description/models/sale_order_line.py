@@ -9,9 +9,11 @@ class SaleOrderLine(models.Model):
 
     @api.onchange("product_id")
     def _onchange_product_id_warning(self):
-        res = super(SaleOrderLine, self)._onchange_product_id_warning()
+        res = super()._onchange_product_id_warning()
         if self.product_id:
             product = self.product_id.with_context(lang=self.order_id.partner_id.lang)
+            self.name = product.get_product_multiline_description_sale()
             if product.variant_description_sale:
-                self.name = product.variant_description_sale
+                self.name += f"\n{product.variant_description_sale}"
+
         return res

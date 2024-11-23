@@ -5,20 +5,27 @@ from odoo.tests import TransactionCase
 
 
 class TestSaleOrderLineVariantDescription(TransactionCase):
-    def setUp(self):
-        super(TestSaleOrderLineVariantDescription, self).setUp()
-        self.fiscal_position_model = self.env["account.fiscal.position"]
-        self.tax_model = self.env["account.tax"]
-        self.pricelist_model = self.env["product.pricelist"]
-        self.uom_uom_model = self.env["uom.uom"]
-        self.product_tmpl_model = self.env["product.template"]
-        self.product_model = self.env["product.product"]
-        self.so_model = self.env["sale.order"]
-        self.so_line_model = self.env["sale.order.line"]
-        self.partner = self.env.ref("base.res_partner_1")
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.fiscal_position_model = cls.env["account.fiscal.position"]
+        cls.tax_model = cls.env["account.tax"]
+        cls.pricelist_model = cls.env["product.pricelist"]
+        cls.uom_uom_model = cls.env["uom.uom"]
+        cls.product_tmpl_model = cls.env["product.template"]
+        cls.product_model = cls.env["product.product"]
+        cls.so_model = cls.env["sale.order"]
+        cls.so_line_model = cls.env["sale.order.line"]
+        cls.partner = cls.env.ref("base.res_partner_1")
 
     def test_product_id_change(self):
-        pricelist = self.pricelist_model.search([("name", "=", "Public Pricelist")])[0]
+        pricelist = self.pricelist_model.search([("name", "=", "Public Pricelist")])
+        if not pricelist:
+            pricelist = self.pricelist_model.create(
+                {"name": "Public Pricelist", "currency_id": self.env.ref("base.USD").id}
+            )
+        pricelist = pricelist[0]
+
         uom = self.uom_uom_model.search([("name", "=", "Units")])[0]
         tax_include = self.tax_model.create(
             dict(name="Include tax", amount="0.21", price_include=True)
@@ -55,4 +62,7 @@ class TestSaleOrderLineVariantDescription(TransactionCase):
             }
         )
         so_line._onchange_product_id_warning()
-        self.assertEqual(product.variant_description_sale, so_line.name)
+        so_line_name_without_product_name = so_line.name.split("\n", 1)[-1]
+        self.assertEqual(
+            product.variant_description_sale, so_line_name_without_product_name
+        )
